@@ -131,11 +131,8 @@ class GACN_Fuse():
                 
                 cat_2 = self.feature_extraction(img2_tensor.to(self.device))
                 f2_sf = self.channel_sf(cat_2)
-                weight_zeros = torch.zeros(f1_sf.shape).to(self.device)
-                weight_ones = torch.ones(f1_sf.shape).to(self.device)
                 bimap = torch.sigmoid(1000*(f1_sf - f2_sf))
-                cat_sf = torch.mul(bimap, weight_ones) + torch.mul((1 - bimap), weight_zeros)
-                _,mask_1 = self.decision_path(cat_sf, img1_tensor.to(self.device), img2_tensor.to(self.device))
+                _,mask_1 = self.decision_path(bimap, img1_tensor.to(self.device), img2_tensor.to(self.device))
             
             mask[i,:,:,:] = mask_1
             torch.cuda.empty_cache() 
@@ -300,13 +297,10 @@ class GACNFuseNet(nn.Module):
         kernel_padding = kernel_size // 2
         f1_sf = f.conv2d(f1_grad, add_kernel, padding=kernel_padding, groups=c)
         f2_sf = f.conv2d(f2_grad, add_kernel, padding=kernel_padding, groups=c)
-        weight_zeros = torch.zeros(f1_sf.shape).cuda(device)
-        weight_ones = torch.ones(f1_sf.shape).cuda(device)
 
         # get decision map
         bimap = torch.sigmoid(1000*(f1_sf - f2_sf))
-        dm_tensor = torch.mul(bimap, weight_ones) + torch.mul((1 - bimap), weight_zeros)
-        return dm_tensor
+        return bimap
     
     def forward(self, img1, img2):
         """
