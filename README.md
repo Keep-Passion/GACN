@@ -30,7 +30,7 @@ python main.py
 # Or run code part by part in notebook
 jupyter notebook main.ipynb
 
-# Train GACN with our multi-focus image dataset
+# Train GACN 
 python train_net.py
 
 # Or train GACN part by part in notebook
