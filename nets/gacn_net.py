@@ -8,7 +8,7 @@ import torch.nn.functional as f
 import torchvision.transforms as transforms
 from skimage import morphology,io
 from skimage.color import rgb2gray
-from nets.nets_utility import gauss_blur
+from nets.nets_utility import GaussBlur
 from nets.guided_filter import GuidedFilter
 import cv2
 class GACN_Fuse():
@@ -73,29 +73,29 @@ class GACN_Fuse():
         else:
             fused = fused.squeeze(0).squeeze(0).cpu().detach().numpy()
         return fused
- 
+
     def multi_fuse_calibration(self, path):
         """
         Multi image fusion using Decision calibration fusion strategy
         """
-        x = 1200
-        y = 900
+        x = 2400
+        y = 1800
         img_list = os.listdir(path)
-        if ".ipynb_checkpoints" in img_list:
-            img_list.remove(".ipynb_checkpoints")
         first = 'V017.jpg'
         second = 'V047.jpg'
         for i in range(len(img_list)):
-            if(img_list[i] == first):
-                img_list[i],img_list[0] = img_list[0], img_list[i] 
-            elif(img_list[i] == second):
-                img_list[i],img_list[1] = img_list[1], img_list[i] 
+            if (img_list[i] == first):
+                img_list[i], img_list[0] = img_list[0], img_list[i]
+            elif (img_list[i] == second):
+                img_list[i], img_list[1] = img_list[1], img_list[i]
+        if ".ipynb_checkpoints" in img_list:
+            img_list.remove(".ipynb_checkpoints")
         num = len(img_list)
         img1 = io.imread(os.path.join(path, img_list[0]))
         ndim = img1.ndim
         img1 = cv2.resize(img1, (x, y))
-        img1_t = self.data_transforms(img1).unsqueeze(0).to(self.device)
-        
+        img1_t = self.data_transforms(img1).unsqueeze(0)
+
         if ndim == 2:
             img1_gray = img1
             img_total = torch.zeros((num, 1, img1.shape[0], img1.shape[1]))
@@ -103,22 +103,21 @@ class GACN_Fuse():
             img1_gray = rgb2gray(img1)
             img_total = torch.zeros((num, 3, img1.shape[0], img1.shape[1]))
         img1_gray_pil = PIL.Image.fromarray(img1_gray)
-        img1_tensor = self.data_transforms(img1_gray_pil).unsqueeze(0)
+        img1_tensor = self.data_transforms(img1_gray_pil).unsqueeze(0).to(self.device)
         img_total[0, :, :, :] = img1_t
         mask = torch.zeros((num - 1, 1, img1.shape[0], img1.shape[1])).to(self.device)
         decision_volume = torch.zeros((num, 1, img1.shape[0], img1.shape[1])).to(self.device)
-        
+
         # Mask generaion
         with torch.no_grad():
             cat_1 = self.feature_extraction(img1_tensor.to(self.device))
             f1_sf = self.channel_sf(cat_1)
-            
-        for i in range(num-1):
-            print(num-1, ':', i+1)
-            img2 = io.imread(os.path.join(path, img_list[i+1]))
+
+        for i in range(num - 1):
+            print(num, ':', i)
+            img2 = io.imread(os.path.join(path, img_list[i + 1]))
             img2 = cv2.resize(img2, (x, y))
-            img2_t = self.data_transforms(img2).unsqueeze(0).to(self.device)
-            ndim = img1.ndim
+            img2_t = self.data_transforms(img2).unsqueeze(0)
             if ndim == 2:
                 img2_gray = img2
             else:
@@ -126,77 +125,93 @@ class GACN_Fuse():
 
             img2_gray_pil = PIL.Image.fromarray(img2_gray)
             img2_tensor = self.data_transforms(img2_gray_pil).unsqueeze(0)
-            
+
             with torch.no_grad():
-                
+
                 cat_2 = self.feature_extraction(img2_tensor.to(self.device))
                 f2_sf = self.channel_sf(cat_2)
-                bimap = torch.sigmoid(1000*(f1_sf - f2_sf))
-                _,mask_1 = self.decision_path(bimap, img1_tensor.to(self.device), img2_tensor.to(self.device))
-            
-            mask[i,:,:,:] = mask_1
-            torch.cuda.empty_cache() 
-            img_total[i+1, :, :, :] = img2_t
- 
+                bimap = torch.sigmoid(1000 * (f1_sf - f2_sf))
+                _, mask_1 = self.decision_path(bimap, img1_tensor, img2_tensor.to(self.device))
+            mask[i, :, :, :] = mask_1
+            img_total[i + 1, :, :, :] = img2_t
+
         # Decision volume generation
         decision_volume[0, :, :, :] = mask[0, :, :, :]
         decision_volume[1, :, :, :] = 1 - mask[0, :, :, :]
-        for i in range(1, num-1):
-            decision_volume[i + 1, :, :, :] = decision_volume[0, :, :, :] / (mask[i, :, :, :]+ 1e-4) * (1 - mask[i, :, :, :])
+        for i in range(1, num - 1):
+            decision_volume[i + 1, :, :, :] = decision_volume[0, :, :, :] / (mask[i, :, :, :] + 1e-4) * (
+                        1 - mask[i, :, :, :])
         _, ind = torch.max(decision_volume, dim=0)
         for i in range(num):
             decision_volume[i, :, :, :] = (ind == i)
-        
+
         # Fusion
         if ndim == 3:
             decision_volume.repeat(1, 3, 1, 1)
         fused = torch.sum(img_total.to(self.device) * decision_volume, dim=0)
         if ndim == 3:
-            fused = fused.permute(1,2,0).cpu().detach().numpy()
+            fused = fused.permute(1, 2, 0).cpu().detach().numpy()
         else:
             fused = fused.squeeze(0).cpu().detach().numpy()
+
         return fused
-    
+
     def multi_fuse_origin(self, path):
         """
         Multi image fusion using one by one serial fusion strategy
         """
-        x = 1200
-        y = 900
+        x = 2400
+        y = 1800
         img_list = sorted(os.listdir(path))
         if ".ipynb_checkpoints" in img_list:
             img_list.remove(".ipynb_checkpoints")
         num = len(img_list)
         img1 = io.imread(os.path.join(path, img_list[0]))
         img1 = cv2.resize(img1, (x, y))
+        img1_t = self.data_transforms(img1).unsqueeze(0).to(self.device)
+        ndim = img1.ndim
+        if ndim == 2:
+            img1_gray = img1
+        else:
+            img1_gray = rgb2gray(img1)
+        img1_gray_pil = PIL.Image.fromarray(img1_gray)
+        img1_tensor = self.data_transforms(img1_gray_pil).unsqueeze(0).to(self.device)
         for i in range(num - 1):
             print(num, ':', i)
             img2 = io.imread(os.path.join(path, img_list[i + 1]))
             img2 = cv2.resize(img2, (x, y))
-            img1_t = self.data_transforms(img1).unsqueeze(0).to(self.device)
             img2_t = self.data_transforms(img2).unsqueeze(0).to(self.device)
-            ndim = img1.ndim
             if ndim == 2:
-                img1_gray = img1
                 img2_gray = img2
             else:
                 img2_gray = rgb2gray(img2)
-                img1_gray = rgb2gray(img1)
-            img1_gray_pil = PIL.Image.fromarray(img1_gray)
+
             img2_gray_pil = PIL.Image.fromarray(img2_gray)
-            img1_tensor = self.data_transforms(img1_gray_pil).unsqueeze(0)
             img2_tensor = self.data_transforms(img2_gray_pil).unsqueeze(0)
+
             with torch.no_grad():
-                _,mask_1 = self.model.forward(img1_tensor.to(self.device), img2_tensor.to(self.device))
+
+                _, mask_1 = self.model.forward(img1_tensor, img2_tensor.to(self.device))
+
             if img1.ndim == 3:
                 mask_1.repeat(1, 3, 1, 1)
-            
-            fused = img1_t*mask_1+img2_t*(1-mask_1)
+
+            fused = img1_t * mask_1 + img2_t * (1 - mask_1)
             if img1.ndim == 3:
-                fused = fused.squeeze(0).squeeze(0).permute(1,2,0)
-            img1 = fused.squeeze(0).squeeze(0).cpu().detach().numpy()
-            #torch.cuda.empty_cache() 
-        return fused.squeeze(0).squeeze(0).cpu().detach().numpy()
+                R = fused[:, 0, :, :].unsqueeze(1)
+                G = fused[:, 1, :, :].unsqueeze(1)
+                B = fused[:, 2, :, :].unsqueeze(1)
+                img1_tensor = 0.2125 * R + 0.7154 * G + 0.0721 * B
+            else:
+                img1_tensor = fused
+
+            img1_t = fused
+
+        if img1.ndim == 3:
+            fused = fused.squeeze(0).permute(1, 2, 0).cpu().detach().numpy()
+        else:
+            fused = fused.squeeze(0).squeeze(0).cpu().detach().numpy()
+        return fused
     
     @staticmethod
     def channel_sf(f1, kernel_radius=5):
@@ -246,6 +261,7 @@ class GACNFuseNet(nn.Module):
         self.decision_path_conv3 = self.conv_block(32, 16,name="decision_path_conv3")
         self.decision_path_conv4 = self.conv_block(16, 1,name="decision_path_conv4")
         self.guided_filter = GuidedFilter(3, 0.1)
+        self.gaussion = GaussBlur(8, 4)
    
     @staticmethod
     def conv_block(in_channels, out_channels, kernel_size = 3, relu = True, batchnorm = True, name = None):
@@ -353,7 +369,7 @@ class GACNFuseNet(nn.Module):
         
         # Boundary guided filter
         output_origin = torch.sigmoid(1000*(se_decision_path_conv4))    
-        output_blur = gauss_blur(output_origin, 8, 4)
+        output_blur = self.gaussion(output_origin)
         zeros = torch.zeros_like(output_blur)
         ones = torch.ones_like(output_blur)
         half = ones/2
@@ -465,6 +481,7 @@ class GACNDecisionPath(nn.Module):
         self.decision_path_conv3 = self.conv_block(32, 16,name="decision_path_conv3")
         self.decision_path_conv4 = self.conv_block(16, 1,name="decision_path_conv4")
         self.guided_filter = GuidedFilter(3, 0.1)
+        self.gaussion = GaussBlur(8, 4)
         
     def forward(self, fused_cat, img1, img2):
         
@@ -480,7 +497,7 @@ class GACNDecisionPath(nn.Module):
         
         # Boundary guided filter
         output_origin = torch.sigmoid(1000*(se_decision_path_conv4))    
-        output_blur = gauss_blur(output_origin, 8, 4)
+        output_blur = self.gaussion(output_origin)
         zeros = torch.zeros_like(output_blur)
         ones = torch.ones_like(output_blur)
         half = ones/2

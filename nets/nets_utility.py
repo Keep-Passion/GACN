@@ -148,6 +148,30 @@ def random_blured(img, mask, filtersize = 0, if_reverse = False, rate = 0.1, num
         result_b_blured_g = img*mask +(1-mask)*img_blured
     return result_o_blured_g, result_b_blured_g
 
+class GaussBlur(nn.Module):
+    """
+     gaussion blur
+    """
+    def __init__(self, sigma, filtersize):
+        super(GaussBlur, self).__init__()
+        self.radius = filtersize
+        sigma2 = sigma ** 2
+        sum_val = 0
+        x = torch.tensor(np.arange(-self.radius, self.radius + 1), dtype=torch.float).expand(1, 2 * self.radius + 1)
+        y = x.t().expand(2 * self.radius + 1, 2 * self.radius + 1)
+        x = x.expand(2 * self.radius + 1, 2 * self.radius + 1)
+        self.kernel = torch.exp(-(torch.mul(x, x) + torch.mul(y, y)) / (2 * sigma2))
+        self.kernel = self.kernel / torch.sum(self.kernel)
+        self.weight = self.kernel.expand(1, 1, 2 * self.radius + 1, 2 * self.radius + 1)
+
+    def forward(self, data):
+        _, c, _, _ = data.shape
+        self.weight = self.weight.expand(c, 1, 9, 9)
+        if str(self.weight.device) != str(data.device):
+            self.weight = self.weight.to(data.device)
+        blured = F.conv2d(data, self.weight, padding=[self.radius], groups=c)
+        return blured
+
 def gauss_blur(data, sigma, filtersize):
     """
      gaussion blur
