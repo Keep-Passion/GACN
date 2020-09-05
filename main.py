@@ -1,11 +1,13 @@
 import os
 from skimage import io
 from nets.gacn_net import GACN_Fuse
-def image_fusion(input_dir, output_dir):
+
+
+def image_fusion(input_dir:  str, output_dir: str):
     """
     Double images fusion
-    :param input_dir: str, input dir with all images stores in one folder
-    :param output_dir: str, output dir with all fused images|
+    :param input_dir:  str, input dir with all images stores in one folder
+    :param output_dir: str, output dir with all fused images
     :return:
     """
     gacn = GACN_Fuse()
@@ -18,22 +20,23 @@ def image_fusion(input_dir, output_dir):
             img1 = io.imread(os.path.join(input_dir, image_name + "_1.png"))
             img2 = io.imread(os.path.join(input_dir, image_name + "_2.png"))
             fused = gacn.fuse(img1, img2)
-            io.imsave(os.path.join(output_dir, image_name + ".png"),fused)
+            io.imsave(os.path.join(output_dir, image_name + ".png"), fused)
 
-def multi_image_fusion(input_dir, output_dir, strategy = "calibration"):
+
+def multi_images_fusion(input_dir: str, output_dir: str, strategy: str="calibration"):
     """
-    Multi image fusion 
+    Multiple images fusion
     :param input_dir: str, input dir with all images stores in one folder
     :param output_dir: str, output dir with all fused images
     :param strategy: str, fusion strategy:
-                    "calibration" means using Decision calibration fusion strategy
+                    "calibration" means using decision calibration fusion strategy
                     "origin" means using one by one serial fusion strategy
     :return:
     """  
     gacn = GACN_Fuse()
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
-    images_path =  os.listdir(input_dir)
+    images_path = os.listdir(input_dir)
     if ".ipynb_checkpoints" in images_path:
         images_path.remove(".ipynb_checkpoints")
     for images in images_path:
@@ -46,6 +49,7 @@ def multi_image_fusion(input_dir, output_dir, strategy = "calibration"):
             raise NameError("illegal fusion strategy")
         io.imsave(os.path.join(output_dir, images+".png"), fused)
 
+
 if __name__ == "__main__":
     
     # Double images fusion
@@ -56,4 +60,4 @@ if __name__ == "__main__":
     # Multi image fusion using Decision calibration fusion strategy
     input_dir_multi = os.path.join(os.getcwd(), "data", "material")
     output_dir_multi = os.path.join(os.getcwd(), "data", "result")
-    multi_image_fusion(input_dir_multi, output_dir_multi, "calibration")
+    multi_images_fusion(input_dir_multi, output_dir_multi, "calibration")

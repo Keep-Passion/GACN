@@ -1,12 +1,13 @@
 # GACN
-Gradient Aware Cascade Network for Multi Focus Image Fusion
+Gradient Aware Cascade Network for Multi-Focus Image Fusion
 
 ## Abstract
-Muti-focus image fusion is the task of extraction of focused regions from different images to create one all-in-focus fused image. And by virtue of high ability of feature representation, deep learning based methods have become the mainstream of image fusion. However, due to nonlinear mapping in decoder structure, most end-to-end deep learning methods cannot precisely reconstruct fusing result, which leads to poor performance in fusion evaluation. Then, some researchers resort to generate an intermediate result, termed decision map, to decide which pixel should appear in fusion result. Although highly fusing performance of these decision map based methods, they need some post-processing methods with empirical parameters to rectify the decision map, which cannot easily apply to different scenes of image fusion. In this work, by a combination of advantages of the above two classes, we propose a cascade network to simultaneously generate decision map and fusing result with end-to-end training procedure, which avoids many empirical post-processing methods in inference stage. Besides we present a gradient aware loss function to optimize the above network and generate promising fusing results. Also, we present a decision calibration method to decrease time consumption in the application of multi-images fusion. Experiments have shown that our method achieves comparable fusion performance against existing state-of-the-art multi-focus image fusion methods in objective and subjective assessments.
+The general aim of multi-focus image fusion is to gather focused regions of different images to generate a unique all-in-focus fused image. Deep learning based methods become the mainstream of image fusion by virtue of its powerful feature representation ability. However, most of the existing deep learning structures failed to balance fusing quality and end-to-end implementation convenience. End-to-end decoder design often leads to poor performance because of non-linear mapping. On the other hands, generating an intermediate decision map can achieve better quality for fused image, but relies on the rectification with empirical post-processing parameter choices. In this work, to handle the requirements of both output image quality and comprehensive simplicity of structure implementation, we propose a cascade network to simultaneously generate decision map and fusing result with an end-to-end training procedure. It avoids utilizing empirical post-processing methods in the inference stage. To improve output fused image quality, we introduce a gradient aware loss function to preserve gradient information in output fused image. In addition, we design a decision calibration method to decrease the time consumption in the application of multiple images fusion. Extensive experiments are conducted to compare with 16 different state-of-the-art multi-focus image fusion structures with 6 assessment metrics. We implement overall ablation studies additionally to test the impact of different modules in our network structure. The results prove that our designed structure can generally ameliorate the output fused image quality for multi-focus images, while implementation efficiency increases for over 25\%.
 
 ## Branches Introduction
 We provide the training and testing method of GACN in this branch.  
 
+![avatar](/paper/network.png)
 ## Requirements
 - Pytorch = 1.2.0
 - Python = 3.6
@@ -37,6 +38,8 @@ python train_net.py
 jupyter notebook train_net.ipynb
 
 ```
+## Visualization
+![avatar](/paper/visualization.png)
 
 ## Citation
 Still in submission.

@@ -11,6 +11,8 @@ from skimage.color import rgb2gray
 from nets.nets_utility import GaussBlur
 from nets.guided_filter import GuidedFilter
 import cv2
+
+
 class GACN_Fuse():
     """
     Fusion Class
@@ -65,11 +67,11 @@ class GACN_Fuse():
         img2_t = self.data_transforms(img2).unsqueeze(0).to(self.device)
 
         if ndim == 3:
-            mask.repeat(1,3,1,1)
+            mask.repeat(1, 3, 1, 1)
 
-        fused = torch.mul(mask_BGF,img1_t)+torch.mul((1-mask_BGF),img2_t)
+        fused = torch.mul(mask_BGF, img1_t)+torch.mul((1-mask_BGF), img2_t)
         if ndim == 3:
-            fused = fused.squeeze(0).permute(1,2,0).cpu().detach().numpy()
+            fused = fused.squeeze(0).permute(1, 2, 0).cpu().detach().numpy()
         else:
             fused = fused.squeeze(0).squeeze(0).cpu().detach().numpy()
         return fused
@@ -233,6 +235,7 @@ class GACN_Fuse():
         f1_sf = f.conv2d(f1_grad, add_kernel, padding=kernel_padding, groups=c)
         return f1_sf
 
+
 class GACNFuseNet(nn.Module):
     """
     The Class of SESFuseNet
@@ -393,7 +396,8 @@ class SSELayer(nn.Module):
     def forward(self, x):
         y = self.fc(x) 
         return x *  y
-    
+
+
 class CSELayer(nn.Module):
     def __init__(self, channel, reduction=16):
         super(CSELayer, self).__init__()
@@ -466,7 +470,8 @@ class GACNFeatureExtraction(nn.Module):
         if batchnorm:
             block.add_module(name+"_BatchNorm",torch.nn.BatchNorm2d(out_channels))
         return block
-        
+
+
 class GACNDecisionPath(nn.Module):
     def __init__(self):
         super(GACNDecisionPath, self).__init__()

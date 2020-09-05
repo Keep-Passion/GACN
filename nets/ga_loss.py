@@ -151,4 +151,3 @@ class GALoss(nn.Module):
         loss_dice = self._dice_loss(mask, gt_mask)
 
         return loss_dice+loss_qg, loss_dice, loss_qg
-        

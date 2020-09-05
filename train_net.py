@@ -67,6 +67,7 @@ optimizer = optim.Adam(model.parameters(), learning_rate)
 # fix the filter size in random blur augment during validation process
 filtersizes = np.random.randint(1,8,(np.ceil(datasets_sizes['val_data']/batch_size).astype(np.int)))
 
+
 def val(epoch):
     model.eval()
     running_loss = 0.0
@@ -89,6 +90,7 @@ def val(epoch):
     epoch_qg_val = qg_loss / datasets_sizes['val_data'] * batch_size
     epoch_dice_val = dice_loss / datasets_sizes['val_data'] * batch_size
     return epoch_loss_val, epoch_qg_val, epoch_dice_val
+
 
 def train(epoch):
     iterations_loss_list = []
@@ -179,5 +181,7 @@ def main():
     print_and_log("train loss: {}".format(loss_train), is_out_log_file, log_address)
     print_and_log("val loss: {}".format(loss_val), is_out_log_file, log_address)
     print_and_log("min val loss: {}".format(min(loss_val)), is_out_log_file, log_address)
-if __name__ =="__main__":
+
+
+if __name__ == "__main__":
     main()
