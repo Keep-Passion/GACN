@@ -11,6 +11,7 @@ import torch.nn as nn
 from nets.ga_loss import GALoss
 import time
 import skimage
+
 # parameter for net
 # name
 experiment_name = 'GACN'
@@ -21,8 +22,8 @@ epochs = 50
 batch_size = 16
 display_step = 50
 shuffle = True
-#Sets the lambda_qg increased by half every 10 epochs "
-rate = 1.0414
+# Sets the lambda_qg increased by half every 10 epochs "
+# rate = 1.0414
 
 
 # address
@@ -41,21 +42,16 @@ data_transforms = transforms.Compose([
     transforms.ToTensor(),
 ])
 
-image_datasets = {}
-image_datasets['train_data'] = COCODataset(train_dir, mask_t_dir, transform = data_transforms, need_crop=True, need_rotate=True,need_filp=True)
-image_datasets['val_data'] = COCODataset(val_dir,  mask_v_dir, transform = data_transforms)
-dataloders = {}
-dataloders['train'] = DataLoader(
-    image_datasets['train_data'],
-    batch_size=batch_size,
-    shuffle=shuffle,
-    num_workers=1)
-dataloders['val'] = DataLoader(
-    image_datasets['val_data'],
-    batch_size=batch_size,
-    shuffle=False,
-    num_workers=1)
-datasets_sizes = {x: len(image_datasets[x]) for x in ['train_data','val_data']}
+image_datasets = {
+    'train_data': COCODataset(train_dir, mask_t_dir, transform=data_transforms, need_crop=True, need_rotate=True,
+                              need_filp=True),
+    'val_data': COCODataset(val_dir, mask_v_dir, transform=data_transforms)}
+
+dataloaders = {'train': DataLoader(image_datasets['train_data'], batch_size=batch_size, shuffle=shuffle,
+                                   num_workers=1),
+               'val': DataLoader(image_datasets['val_data'], batch_size=batch_size, shuffle=False,
+                                 num_workers=1)}
+datasets_sizes = {x: len(image_datasets[x]) for x in ['train_data', 'val_data']}
 print_and_log("datasets size: {}".format(datasets_sizes), is_out_log_file, log_address)
 # models
 training_setup_seed(1)
@@ -65,7 +61,7 @@ criterion = GALoss().to(gpu_device)
 optimizer = optim.Adam(model.parameters(), learning_rate)
 
 # fix the filter size in random blur augment during validation process
-filtersizes = np.random.randint(1,8,(np.ceil(datasets_sizes['val_data']/batch_size).astype(np.int)))
+filter_sizes = np.random.randint(1, 8, (np.ceil(datasets_sizes['val_data'] / batch_size).astype(np.int)))
 
 
 def val(epoch):
@@ -75,17 +71,17 @@ def val(epoch):
     dice_loss = 0.00
     with torch.no_grad():
         out = []
-        for i, data in enumerate(dataloders['val']):
+        for i, data in enumerate(dataloaders['val']):
             gt_mask = data[1].to(gpu_device)
-            input_1, input_2 = random_blured(data[0].to(gpu_device), gt_mask, filtersize = filtersizes[i])    
+            input_1, input_2 = random_blurred(data[0].to(gpu_device), gt_mask, filtersize=filter_sizes[i])
             optimizer.zero_grad()
             mask, mask_BGF = model.forward(input_2, input_1)
             loss, dice, qg = criterion(input_2, input_1, mask, mask_BGF, gt_mask)
             running_loss += loss.item()
-            qg_loss +=qg.item()
+            qg_loss += qg.item()
             dice_loss += dice.item()
-            index_1 = np.random.randint(int(len(image_datasets["val_data"])/16) , size=3)
-        
+            index_1 = np.random.randint(int(len(image_datasets["val_data"]) / 16), size=3)
+
     epoch_loss_val = running_loss / datasets_sizes['val_data'] * batch_size
     epoch_qg_val = qg_loss / datasets_sizes['val_data'] * batch_size
     epoch_dice_val = dice_loss / datasets_sizes['val_data'] * batch_size
@@ -102,35 +98,36 @@ def train(epoch):
     running_loss = 0.0
     # Iterate over data.
     out = []
-    for i, data in enumerate(dataloders['train']):
+    for i, data in enumerate(dataloaders['train']):
         gt_mask = data[1].to(gpu_device)
         ori_img = data[0].to(gpu_device)
-        
+
         # data augment
         # random blur
-        input_1, input_2 = random_blured(ori_img, gt_mask)
+        input_1, input_2 = random_blurred(ori_img, gt_mask)
         # random erasing
-        if np.random.rand()>99:
-            input_1,input_2 = random_erasing(input_1, input_2, 6, 15, 20)
+        if np.random.rand() > 99:
+            input_1, input_2 = random_erasing(input_1, input_2, 6, 15, 20)
         # random offset
-        input_1,input_2 = random_offset(input_1,input_2,2,2)
-        # gaussion noise
-        std = torch.rand(1)*0.1
-        input_1, input_2 = gaussion_noise(input_1, input_2,std)
-        
+        input_1, input_2 = random_offset(input_1, input_2, 2, 2)
+        # gaussian noise
+        std = torch.rand(1) * 0.1
+        input_1, input_2 = gaussian_noise(input_1, input_2, std)
+
         # swap input order randomly
         flag = np.random.rand()
-        if(flag>0.5):
-            output, output_2 = model.forward(input_2,input_1)
+        if flag > 0.5:
+            output, output_2 = model.forward(input_2, input_1)
             loss, dice, qg = criterion(input_2, input_1, output, output_2, data[1].to(gpu_device))
         else:
-            output, output_2 = model.forward(input_1,input_2)
-            loss, dice, qg = criterion(input_1, input_2, output, output_2, 1-data[1].to(gpu_device))
-        
+            output, output_2 = model.forward(input_1, input_2)
+            loss, dice, qg = criterion(input_1, input_2, output, output_2, 1 - data[1].to(gpu_device))
+
         # display
         running_loss += loss.item()
         if i % display_step == 0:
-            print_and_log('\t{} {}-{}: Loss: {:.4f} ,qg: {:.4f},dice: {:.4f}'.format('train', epoch + 1, i, loss.item(),qg.item(),dice.item()),
+            print_and_log('\t{} {}-{}: Loss: {:.4f} ,qg: {:.4f},dice: {:.4f}'.format('train', epoch + 1, i, loss.item(),
+                                                                                     qg.item(), dice.item()),
                           is_out_log_file, log_address)
             iterations_loss_list.append(loss.item())
             iterations_qg_list.append(qg.item())
@@ -140,7 +137,7 @@ def train(epoch):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
-        
+
     epoch_loss_train = running_loss / datasets_sizes['train_data'] * batch_size
     plot_iteration_loss(experiment_name, epoch + 1, iterations_loss_list, iterations_qg_list, iterations_dice_list)
     return epoch_loss_train
@@ -154,24 +151,26 @@ def main():
     for epoch in range(epochs):
         epoch_loss_train = train(epoch)
         loss_train.append(epoch_loss_train)
-        epoch_loss_val,epoch_qg_val,epoch_dice_val= val(epoch)
+        epoch_loss_val, epoch_qg_val, epoch_dice_val = val(epoch)
         loss_val.append(epoch_loss_val)
         print_and_log('\ttrain Loss: {:.6f}'.format(epoch_loss_train), is_out_log_file, log_address)
-        print_and_log('\tvalidation Loss: {:.6f}, Qg: {:.6f}, dice: {:.6f}'.format(epoch_loss_val,epoch_qg_val,epoch_dice_val), is_out_log_file, log_address)
+        print_and_log('\tvalidation Loss: {:.6f}, Qg: {:.6f}, dice: {:.6f}'
+                      .format(epoch_loss_val, epoch_qg_val, epoch_dice_val), is_out_log_file, log_address)
 
         # deep copy the models
-        if epoch_loss_val  < min_loss:
+        if epoch_loss_val < min_loss:
             print(epoch_loss_val)
             min_loss = epoch_loss_val
             best_model_wts = model.state_dict()
             print_and_log("Updating", is_out_log_file, log_address)
             torch.save(best_model_wts,
-                       os.path.join(parameter_address, experiment_name +'.pkl'))
+                       os.path.join(parameter_address, experiment_name + '.pkl'))
+
         plot_loss(experiment_name, epoch, loss_train, loss_val)
         # save models
         model_wts = model.state_dict()
         torch.save(model_wts,
-                   os.path.join(parameter_address, experiment_name + '_'+str(epoch)+'.pkl'))
+                   os.path.join(parameter_address, experiment_name + '_' + str(epoch) + '.pkl'))
 
         time_elapsed = time.time() - since
         print_and_log('Time passed {:.0f}h {:.0f}m {:.0f}s'.

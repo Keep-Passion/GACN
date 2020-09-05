@@ -1,6 +1,7 @@
 import torch
 from torch import nn
 
+
 def diff_x(input, r):
     assert input.dim() == 4
 
@@ -12,6 +13,7 @@ def diff_x(input, r):
 
     return output
 
+
 def diff_y(input, r):
     assert input.dim() == 4
 
@@ -22,6 +24,7 @@ def diff_y(input, r):
     output = torch.cat([left, middle, right], dim=3)
 
     return output
+
 
 class BoxFilter(nn.Module):
     def __init__(self, r):

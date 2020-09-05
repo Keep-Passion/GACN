@@ -21,7 +21,7 @@ class GACN_Fuse():
         # initialize model
         self.device = "cuda:0"
         self.model = GACNFuseNet()
-        self.model_path = os.path.join(os.getcwd(), "nets", "parameters","GACN.pkl")
+        self.model_path = os.path.join(os.getcwd(), "nets", "parameters", "GACN.pkl")
         self.checkpoint = torch.load(self.model_path, map_location={'cuda:3': 'cuda:0'})
         self.model.load_state_dict(self.checkpoint)
         self.model.to(self.device)
@@ -42,7 +42,7 @@ class GACN_Fuse():
         self.std_value = 0.2650597193463966
         self.data_transforms = transforms.Compose([
             transforms.ToTensor(),
-            #transforms.Normalize([self.mean_value], [self.std_value])
+            # transforms.Normalize([self.mean_value], [self.std_value])
         ])
 
     def fuse(self, img1, img2):
@@ -385,6 +385,7 @@ class GACNFuseNet(nn.Module):
         output_bgf = output_gf*boundary_map+output_origin*(1-boundary_map)
         return output_origin, output_bgf
 
+
 class SSELayer(nn.Module):
     def __init__(self, channel):
         super(SSELayer, self).__init__()
@@ -414,7 +415,8 @@ class CSELayer(nn.Module):
         y = self.avg_pool(x).view(b, c)
         y = self.fc(y).view(b, c, 1, 1)
         return x * y.expand_as(x)
-    
+
+
 class GACNFeatureExtraction(nn.Module):
     def __init__(self):
         super(GACNFeatureExtraction, self).__init__()
@@ -516,7 +518,7 @@ class GACNDecisionPath(nn.Module):
         return output_origin, output_bgf
     
     @staticmethod
-    def conv_block(in_channels, out_channels, kernel_size = 3, relu = True, batchnorm = True, name = None):
+    def conv_block(in_channels, out_channels, kernel_size=3, relu=True, batchnorm=True, name=None):
         """
         The conv block of common setting: conv -> relu -> bn
         In conv operation, the padding = 1
@@ -529,9 +531,9 @@ class GACNDecisionPath(nn.Module):
         :return:
         """
         block = torch.nn.Sequential()
-        block.add_module(name+"_Conv2d",torch.nn.Conv2d(kernel_size=kernel_size, in_channels=in_channels,out_channels=out_channels, padding=kernel_size // 2 ))
+        block.add_module(name+"_Conv2d", torch.nn.Conv2d(kernel_size=kernel_size, in_channels=in_channels,out_channels=out_channels, padding=kernel_size // 2 ))
         if relu:
-            block.add_module(name+"_ReLu",torch.nn.ReLU())
+            block.add_module(name+"_ReLu", torch.nn.ReLU())
         if batchnorm:
-            block.add_module(name+"_BatchNorm",torch.nn.BatchNorm2d(out_channels))
+            block.add_module(name+"_BatchNorm", torch.nn.BatchNorm2d(out_channels))
         return block

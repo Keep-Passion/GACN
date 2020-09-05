@@ -4,14 +4,14 @@ from torch.nn import functional as F
 from torch.autograd import Variable
 from .box_filter import BoxFilter
 
+
 class FastGuidedFilter(nn.Module):
     def __init__(self, r, eps=1e-8):
         super(FastGuidedFilter, self).__init__()
 
         self.r = r
         self.eps = eps
-        self.boxfilter = BoxFilter(r)
-
+        self.box_filter = BoxFilter(r)
 
     def forward(self, lr_x, lr_y, hr_x):
         n_lrx, c_lrx, h_lrx, w_lrx = lr_x.size()
@@ -23,24 +23,24 @@ class FastGuidedFilter(nn.Module):
         assert h_lrx == h_lry and w_lrx == w_lry
         assert h_lrx > 2*self.r+1 and w_lrx > 2*self.r+1
 
-        ## N
-        N = self.boxfilter(Variable(lr_x.data.new().resize_((1, 1, h_lrx, w_lrx)).fill_(1.0)))
+        # N
+        N = self.box_filter(Variable(lr_x.data.new().resize_((1, 1, h_lrx, w_lrx)).fill_(1.0)))
 
-        ## mean_x
-        mean_x = self.boxfilter(lr_x) / N
-        ## mean_y
-        mean_y = self.boxfilter(lr_y) / N
-        ## cov_xy
-        cov_xy = self.boxfilter(lr_x * lr_y) / N - mean_x * mean_y
-        ## var_x
-        var_x = self.boxfilter(lr_x * lr_x) / N - mean_x * mean_x
+        # mean_x
+        mean_x = self.box_filter(lr_x) / N
+        # mean_y
+        mean_y = self.box_filter(lr_y) / N
+        # cov_xy
+        cov_xy = self.box_filter(lr_x * lr_y) / N - mean_x * mean_y
+        # var_x
+        var_x = self.box_filter(lr_x * lr_x) / N - mean_x * mean_x
 
-        ## A
+        # A
         A = cov_xy / (var_x + self.eps)
-        ## b
+        # b
         b = mean_y - A * mean_x
 
-        ## mean_A; mean_b
+        # mean_A; mean_b
         mean_A = F.interpolate(A, (h_hrx, w_hrx), mode='bilinear', align_corners=True)
         mean_b = F.interpolate(b, (h_hrx, w_hrx), mode='bilinear', align_corners=True)
 
@@ -53,8 +53,7 @@ class GuidedFilter(nn.Module):
 
         self.r = r
         self.eps = eps
-        self.boxfilter = BoxFilter(r)
-
+        self.box_filter = BoxFilter(r)
 
     def forward(self, x, y):
         n_x, c_x, h_x, w_x = x.size()
@@ -65,16 +64,16 @@ class GuidedFilter(nn.Module):
         assert h_x > 2 * self.r + 1 and w_x > 2 * self.r + 1
 
         # N
-        N = self.boxfilter(Variable(x.data.new().resize_((1, 1, h_x, w_x)).fill_(1.0)))
+        N = self.box_filter(Variable(x.data.new().resize_((1, 1, h_x, w_x)).fill_(1.0)))
 
         # mean_x
-        mean_x = self.boxfilter(x) / N
+        mean_x = self.box_filter(x) / N
         # mean_y
-        mean_y = self.boxfilter(y) / N
+        mean_y = self.box_filter(y) / N
         # cov_xy
-        cov_xy = self.boxfilter(x * y) / N - mean_x * mean_y
+        cov_xy = self.box_filter(x * y) / N - mean_x * mean_y
         # var_x
-        var_x = self.boxfilter(x * x) / N - mean_x * mean_x
+        var_x = self.box_filter(x * x) / N - mean_x * mean_x
 
         # A
         A = cov_xy / (var_x + self.eps)
@@ -82,10 +81,11 @@ class GuidedFilter(nn.Module):
         b = mean_y - A * mean_x
 
         # mean_A; mean_b
-        mean_A = self.boxfilter(A) / N
-        mean_b = self.boxfilter(b) / N
+        mean_A = self.box_filter(A) / N
+        mean_b = self.box_filter(b) / N
 
         return mean_A * x + mean_b
+
 
 class ConvGuidedFilter(nn.Module):
     def __init__(self, radius=1, norm=nn.BatchNorm2d):
@@ -106,21 +106,21 @@ class ConvGuidedFilter(nn.Module):
         _, _, h_hrx, w_hrx = x_hr.size()
 
         N = self.box_filter(x_lr.data.new().resize_((1, 3, h_lrx, w_lrx)).fill_(1.0))
-        ## mean_x
+        # mean_x
         mean_x = self.box_filter(x_lr)/N
-        ## mean_y
+        # mean_y
         mean_y = self.box_filter(y_lr)/N
-        ## cov_xy
+        # cov_xy
         cov_xy = self.box_filter(x_lr * y_lr)/N - mean_x * mean_y
-        ## var_x
+        # var_x
         var_x  = self.box_filter(x_lr * x_lr)/N - mean_x * mean_x
 
-        ## A
+        # A
         A = self.conv_a(torch.cat([cov_xy, var_x], dim=1))
-        ## b
+        # b
         b = mean_y - A * mean_x
 
-        ## mean_A; mean_b
+        # mean_A; mean_b
         mean_A = F.interpolate(A, (h_hrx, w_hrx), mode='bilinear', align_corners=True)
         mean_b = F.interpolate(b, (h_hrx, w_hrx), mode='bilinear', align_corners=True)
 

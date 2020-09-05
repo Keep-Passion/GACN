@@ -9,8 +9,10 @@ import torchvision.transforms as transforms
 from nets.nets_utility import *
 import torchvision.transforms.functional as F
 
+
 class COCODataset(Dataset):
-    def __init__(self, data_dir, mask_dir, crop_size = 156, transform = None, need_crop = False, need_rotate = False, need_filp = False):
+    def __init__(self, data_dir, mask_dir, crop_size=156,
+                 transform=None, need_crop=False, need_rotate=False, need_flip=False):
         
         self._images_basename = os.listdir(data_dir)
         if '.ipynb_checkpoints' in self._images_basename:
@@ -25,7 +27,7 @@ class COCODataset(Dataset):
         ])
         self._need_rotate = need_rotate
         self._need_crop = need_crop
-        self._need_flip = need_filp
+        self._need_flip = need_flip
 
     def __len__(self):
         return len(self._data_address)
@@ -36,14 +38,14 @@ class COCODataset(Dataset):
         mask = cv2.imread(self._mask_address[idx], 0) / 255.0
         mask = cv2.resize(mask, (256, 256))  
         
-        #random crop
+        # random crop
         roi_image_np_1, roi_image_np_2 = self._random_crop(data, mask) 
-        #random filp
-        roi_image_pil_1, roi_image_pil_2 = self._rand_filp(roi_image_np_1, roi_image_np_2)
-        #random rotated
+        # random flip
+        roi_image_pil_1, roi_image_pil_2 = self._rand_flip(roi_image_np_1, roi_image_np_2)
+        # random rotated
         roi_image_pil_1, roi_image_pil_2 = self._rand_rotate(roi_image_pil_1, roi_image_pil_2)
         
-        #transform    
+        # transform
         if self._transform is not None:
             roi_image_tensor_1 = self._transform(roi_image_pil_1)
             roi_image_tensor_2 = self._origin_transform(roi_image_pil_2)
@@ -51,12 +53,12 @@ class COCODataset(Dataset):
             roi_image_tensor_1 = self._origin_transform(roi_image_pil_1)
             roi_image_tensor_2 = self._origin_transform(roi_image_pil_2)
         
-        roi_image_tensor_2[roi_image_tensor_2<0.5] = 0
-        roi_image_tensor_2[roi_image_tensor_2>0.5] = 1
+        roi_image_tensor_2[roi_image_tensor_2 < 0.5] = 0
+        roi_image_tensor_2[roi_image_tensor_2 > 0.5] = 1
         
         return roi_image_tensor_1, roi_image_tensor_2
 
-    def _rand_filp(self, image_1, image_2):
+    def _rand_flip(self, image_1, image_2):
         """
         random filp
         :param image_1: array, input image
@@ -66,7 +68,6 @@ class COCODataset(Dataset):
         image_pil_1 = PIL.Image.fromarray(image_1.astype(np.float32))
         image_pil_2 = PIL.Image.fromarray(image_2.astype(np.float32))
         if self._need_flip:
-
             image_pil_1, image_pil_2 = self._rand_horizontal_flip(image_pil_1, image_pil_2)
             image_pil_1, image_pil_2 = self._rand_vertical_flip(image_pil_1, image_pil_2)
 
@@ -80,7 +81,7 @@ class COCODataset(Dataset):
         :return:
         """
         if self._need_rotate:
-            rotate_angle = random.choice([0, 30,60,90,120,150,180,210,240,270,300,330])
+            rotate_angle = random.choice([0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330])
             image_pil_1 = image_pil_1.rotate(rotate_angle)
             image_pil_2 = image_pil_2.rotate(rotate_angle)
         return image_pil_1, image_pil_2
@@ -123,5 +124,3 @@ class COCODataset(Dataset):
             image = image[start_row: start_row + self._crop_size, start_col: start_col + self._crop_size]
             mask = mask[start_row: start_row + self._crop_size, start_col: start_col + self._crop_size]
         return image, mask
-   
-    

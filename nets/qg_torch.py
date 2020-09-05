@@ -2,6 +2,8 @@ import numpy as np
 import cv2
 import torch
 import torch.nn.functional as F
+
+
 def evaluate_by_Qg(img1, img2, fuse):
     #flt1 = np.array([[-1, 0, 1], [-2, 0, 2], [-1, 0, 1]])
     #flt2 = np.array([[-1, -2, -1], [0, 0, 0], [1, 2, 1]])
@@ -97,30 +99,30 @@ def evaluate_by_Qg(img1, img2, fuse):
     Qbf = torch.mul(Qg_BF, Qalpha_BF)
 
     # 3) compute the weighting matrix
-    L=1
+    L = 1
 
-    Wa=torch.pow(img1G, L)
-    Wb=torch.pow(img2G, L)
+    Wa = torch.pow(img1G, L)
+    Wb = torch.pow(img2G, L)
 
-    #res=np.sum(np.sum(Qaf.*Wa+Qbf.*Wb))/np.sum(np.sum(Wa+Wb))
-    res=torch.mean(torch.div(torch.mul(Qaf, Wa)+torch.mul(Qbf, Wb), (Wa+Wb)))
+    # res=np.sum(np.sum(Qaf.*Wa+Qbf.*Wb))/np.sum(np.sum(Wa+Wb))
+    res = torch.mean(torch.div(torch.mul(Qaf, Wa)+torch.mul(Qbf, Wb), (Wa+Wb)))
     return res.item()
 
+
 if __name__ == "__main__":
-    a=[[1,2,3,4,5],[6,7,8,9,10],[11,12,13,14,15],[16,17,18,19,20],[21,22,23,24,25]]
-    b=[[1,2,3],[3,4,2],[3,4,1]]
-    a=np.array(a)
-    b=np.array(b)
-    c=filter2(b,a,'SAME')
-    img1=cv2.imread('C:/Users/yinxiang/Desktop/picture/data/color_dsift_flower_1.png',0)
-    img2=cv2.imread('C:/Users/yinxiang/Desktop/picture/data/color_dsift_flower_2.png',0)
-    fused = cv2.imread('C:/Users/yinxiang/Desktop/picture/result/color_dsift_flower.png',0)
+    a = [[1, 2, 3, 4, 5], [6, 7, 8, 9, 10], [11, 12, 13, 14, 15], [16, 17, 18, 19, 20], [21, 22, 23, 24, 25]]
+    b = [[1, 2, 3], [3, 4, 2], [3, 4, 1]]
+    a = np.array(a)
+    b = np.array(b)
+    c = filter2(b, a, 'SAME')
+    img1 = cv2.imread('C:/Users/yinxiang/Desktop/picture/data/color_dsift_flower_1.png', 0)
+    img2 = cv2.imread('C:/Users/yinxiang/Desktop/picture/data/color_dsift_flower_2.png', 0)
+    fused = cv2.imread('C:/Users/yinxiang/Desktop/picture/result/color_dsift_flower.png', 0)
     '''
     cv2.imwrite('C:/Users/yinxiang/Desktop/picture/data/color_dsift_flower_1_gray.png',img1)
     cv2.imwrite('C:/Users/yinxiang/Desktop/picture/data/color_dsift_flower_2_gray.png',img2)
     cv2.imwrite('C:/Users/yinxiang/Desktop/picture/result/color_dsift_flower_gray.png',fused)
     '''
-    b = evaluate_by_Qg(img1,img2,fused)
+    b = evaluate_by_Qg(img1, img2, fused)
 
-    print(np.shape(b), torch.mul(np.array([3,3]),[2,1]))
-    
+    print(np.shape(b), torch.mul(np.array([3, 3]), [2, 1]))
