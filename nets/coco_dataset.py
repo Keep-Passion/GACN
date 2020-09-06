@@ -124,3 +124,50 @@ class COCODataset(Dataset):
             image = image[start_row: start_row + self._crop_size, start_col: start_col + self._crop_size]
             mask = mask[start_row: start_row + self._crop_size, start_col: start_col + self._crop_size]
         return image, mask
+
+
+class DataAugment():
+    """
+    Implement data augment
+    """
+    def __init__(self, dataloader, random_blur=True, random_erasing=True, random_offset=True, gaussian_noise=True, swap=True, filter_sizes=None, device = 'cpu'):
+        self.dataloader = dataloader
+        self.random_blur = random_blur
+        self.random_erasing = random_erasing
+        self.random_offset = random_offset
+        self.gaussian_noise = gaussian_noise
+        self.swap = swap
+        self.filter_sizes = filter_sizes
+        self.device = device
+
+    def __len__(self):
+        return len(self.dataloader)
+
+    def __iter__(self):
+        for i, data in enumerate(self.dataloader):
+            input_mask = data[1]
+            # data augment
+            # random blur
+            if self.random_blur:
+                input_img_1, input_img_2 = random_blurred(data[0].to(self.device), data[1].to(self.device))
+            else:
+                input_img_1, input_img_2 = random_blurred(data[0].to(self.device), data[1].to(self.device), filter_size=self.filter_sizes[i])
+            # random erasing
+            if self.random_erasing:
+                if np.random.rand() > 99:
+                    input_img_1, input_img_2 = random_erasing(input_img_1, input_img_2, 6, 15, 20)
+            # random offset
+            if self.random_offset:
+                input_img_1, input_img_2 = random_offset(input_img_1, input_img_2, 2, 2)
+            # gaussian noise
+            if self.gaussian_noise:
+                std = torch.rand(1) * 0.1
+                input_img_1, input_img_2 = gaussian_noise(input_img_1, input_img_2, std)
+
+            # swap input order randomly
+            if self.swap:
+                flag = np.random.rand()
+                if flag <= 0.5:
+                    input_mask = 1 - input_mask
+                    input_img_1, input_img_2 = input_img_2, input_img_1
+            yield input_img_1, input_img_2, input_mask

@@ -4,7 +4,7 @@ import torch
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 import torch.optim as optim
-from nets.coco_dataset import COCODataset
+from nets.coco_dataset import COCODataset, DataAugment
 from nets.gacn_net import GACNFuseNet
 from nets.nets_utility import *
 import torch.nn as nn
@@ -22,8 +22,6 @@ epochs = 50
 batch_size = 16
 display_step = 50
 shuffle = True
-# Sets the lambda_qg increased by half every 10 epochs "
-# rate = 1.0414
 
 
 # address
@@ -37,6 +35,12 @@ log_address = os.path.join(project_addrsss, "nets", "train_record", experiment_n
 is_out_log_file = True
 parameter_address = os.path.join(project_addrsss, "nets", "parameters")
 print(experiment_name)
+# models
+training_setup_seed(1)
+model = GACNFuseNet()
+model.to(gpu_device)
+criterion = GALoss().to(gpu_device)
+optimizer = optim.Adam(model.parameters(), learning_rate)
 # datasets
 data_transforms = transforms.Compose([
     transforms.ToTensor(),
@@ -44,25 +48,23 @@ data_transforms = transforms.Compose([
 
 image_datasets = {
     'train_data': COCODataset(train_dir, mask_t_dir, transform=data_transforms, need_crop=True, need_rotate=True,
-                              need_filp=True),
+                              need_flip=True),
     'val_data': COCODataset(val_dir, mask_v_dir, transform=data_transforms)}
 
 dataloaders = {'train': DataLoader(image_datasets['train_data'], batch_size=batch_size, shuffle=shuffle,
                                    num_workers=1),
                'val': DataLoader(image_datasets['val_data'], batch_size=batch_size, shuffle=False,
                                  num_workers=1)}
-datasets_sizes = {x: len(image_datasets[x]) for x in ['train_data', 'val_data']}
-print_and_log("datasets size: {}".format(datasets_sizes), is_out_log_file, log_address)
-# models
-training_setup_seed(1)
-model = GACNFuseNet()
-model.to(gpu_device)
-criterion = GALoss().to(gpu_device)
-optimizer = optim.Adam(model.parameters(), learning_rate)
-
+#data augment
 # fix the filter size in random blur augment during validation process
+datasets_sizes = {x: len(image_datasets[x]) for x in ['train_data', 'val_data']}
 filter_sizes = np.random.randint(1, 8, (np.ceil(datasets_sizes['val_data'] / batch_size).astype(np.int)))
-
+train_augment = DataAugment(dataloaders['train'], device=gpu_device)
+val_augment = DataAugment(dataloaders['val'], random_blur=False, \
+                          random_erasing=False, random_offset=False, \
+                          gaussian_noise=False, swap=False, \
+                          filter_sizes=filter_sizes, device=gpu_device)
+print_and_log("datasets size: {}".format(datasets_sizes), is_out_log_file, log_address)
 
 def val(epoch):
     model.eval()
@@ -70,10 +72,10 @@ def val(epoch):
     qg_loss = 0.00
     dice_loss = 0.00
     with torch.no_grad():
-        out = []
-        for i, data in enumerate(dataloaders['val']):
-            gt_mask = data[1].to(gpu_device)
-            input_1, input_2 = random_blurred(data[0].to(gpu_device), gt_mask, filtersize=filter_sizes[i])
+        for i, data in enumerate(val_augment):
+            input_1 = data[0].to(gpu_device)
+            input_2 = data[1].to(gpu_device)
+            gt_mask = data[2].to(gpu_device)
             optimizer.zero_grad()
             mask, mask_BGF = model.forward(input_2, input_1)
             loss, dice, qg = criterion(input_2, input_1, mask, mask_BGF, gt_mask)
@@ -97,31 +99,13 @@ def train(epoch):
     print_and_log('Train Epoch {}/{}:'.format(epoch + 1, epochs), is_out_log_file, log_address)
     running_loss = 0.0
     # Iterate over data.
-    out = []
-    for i, data in enumerate(dataloaders['train']):
-        gt_mask = data[1].to(gpu_device)
-        ori_img = data[0].to(gpu_device)
+    for i, data in enumerate(train_augment):
+        input_1 = data[0].to(gpu_device)
+        input_2 = data[1].to(gpu_device)
+        gt_mask = data[2].to(gpu_device)
 
-        # data augment
-        # random blur
-        input_1, input_2 = random_blurred(ori_img, gt_mask)
-        # random erasing
-        if np.random.rand() > 99:
-            input_1, input_2 = random_erasing(input_1, input_2, 6, 15, 20)
-        # random offset
-        input_1, input_2 = random_offset(input_1, input_2, 2, 2)
-        # gaussian noise
-        std = torch.rand(1) * 0.1
-        input_1, input_2 = gaussian_noise(input_1, input_2, std)
-
-        # swap input order randomly
-        flag = np.random.rand()
-        if flag > 0.5:
-            output, output_2 = model.forward(input_2, input_1)
-            loss, dice, qg = criterion(input_2, input_1, output, output_2, data[1].to(gpu_device))
-        else:
-            output, output_2 = model.forward(input_1, input_2)
-            loss, dice, qg = criterion(input_1, input_2, output, output_2, 1 - data[1].to(gpu_device))
+        mask, mask_BGF = model.forward(input_2, input_1)
+        loss, dice, qg = criterion(input_2, input_1, mask, mask_BGF, gt_mask)
 
         # display
         running_loss += loss.item()
