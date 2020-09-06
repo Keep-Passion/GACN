@@ -29,11 +29,13 @@ class GALoss(nn.Module):
    
     def _qg_soft(self, img1, img2, fuse, k):
         """
-        Compute the Qg for the given two image and the fused image
+        Compute the Qg for the given two image and the fused image.
+        The calculation of Qg is modified to the python version based on the
+        matlab version from https://github.com/zhengliu6699/imageFusionMetrics
         :param img1: tensor, input image A
         :param img2: tensor, input image B
         :param fuse: tensor, fused image
-        :param k: softening factor 
+        :param k: softening factor
         :return:
         """
         # 1) get the map

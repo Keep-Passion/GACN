@@ -1,7 +1,3 @@
-import os
-import random
-import cv2
-import numpy as np
 import PIL.Image
 from torch.utils.data.dataset import Dataset
 from torch.utils.data import DataLoader
@@ -39,24 +35,24 @@ class COCODataset(Dataset):
         mask = cv2.resize(mask, (256, 256))  
         
         # random crop
-        roi_image_np_1, roi_image_np_2 = self._random_crop(data, mask) 
+        roi_image_np, roi_mask_np = self._random_crop(data, mask)
         # random flip
-        roi_image_pil_1, roi_image_pil_2 = self._rand_flip(roi_image_np_1, roi_image_np_2)
+        roi_image_pil, roi_mask_pil = self._rand_flip(roi_image_np, roi_mask_np)
         # random rotated
-        roi_image_pil_1, roi_image_pil_2 = self._rand_rotate(roi_image_pil_1, roi_image_pil_2)
+        roi_image_pil, roi_mask_pil = self._rand_rotate(roi_image_pil, roi_mask_pil)
         
         # transform
         if self._transform is not None:
-            roi_image_tensor_1 = self._transform(roi_image_pil_1)
-            roi_image_tensor_2 = self._origin_transform(roi_image_pil_2)
+            roi_image_tensor = self._transform(roi_image_pil)
+            roi_mask_tensor = self._origin_transform(roi_mask_pil)
         else:
-            roi_image_tensor_1 = self._origin_transform(roi_image_pil_1)
-            roi_image_tensor_2 = self._origin_transform(roi_image_pil_2)
+            roi_image_tensor = self._origin_transform(roi_image_pil)
+            roi_mask_tensor = self._origin_transform(roi_mask_pil)
         
-        roi_image_tensor_2[roi_image_tensor_2 < 0.5] = 0
-        roi_image_tensor_2[roi_image_tensor_2 > 0.5] = 1
+        roi_mask_tensor[roi_mask_tensor < 0.5] = 0
+        roi_mask_tensor[roi_mask_tensor > 0.5] = 1
         
-        return roi_image_tensor_1, roi_image_tensor_2
+        return roi_image_tensor, roi_mask_tensor
 
     def _rand_flip(self, image_1, image_2):
         """
@@ -124,3 +120,50 @@ class COCODataset(Dataset):
             image = image[start_row: start_row + self._crop_size, start_col: start_col + self._crop_size]
             mask = mask[start_row: start_row + self._crop_size, start_col: start_col + self._crop_size]
         return image, mask
+
+
+class DataAugment():
+    """
+    Implement data augment
+    """
+    def __init__(self, dataloader, random_blur=True, random_erasing=True, random_offset=True, gaussian_noise=True, swap=True, filter_sizes=None, device = 'cpu'):
+        self.dataloader = dataloader
+        self.random_blur = random_blur
+        self.random_erasing = random_erasing
+        self.random_offset = random_offset
+        self.gaussian_noise = gaussian_noise
+        self.swap = swap
+        self.filter_sizes = filter_sizes
+        self.device = device
+
+    def __len__(self):
+        return len(self.dataloader)
+
+    def __iter__(self):
+        for i, data in enumerate(self.dataloader):
+            input_mask = data[1]
+            # data augment
+            # random blur
+            if self.random_blur:
+                input_img_1, input_img_2 = random_blurred(data[0].to(self.device), data[1].to(self.device))
+            else:
+                input_img_1, input_img_2 = random_blurred(data[0].to(self.device), data[1].to(self.device), filter_size=self.filter_sizes[i])
+            # random erasing
+            if self.random_erasing:
+                if np.random.rand() > 99:
+                    input_img_1, input_img_2 = random_erasing(input_img_1, input_img_2, 6, 15, 20)
+            # random offset
+            if self.random_offset:
+                input_img_1, input_img_2 = random_offset(input_img_1, input_img_2, 2, 2)
+            # gaussian noise
+            if self.gaussian_noise:
+                std = torch.rand(1) * 0.1
+                input_img_1, input_img_2 = gaussian_noise(input_img_1, input_img_2, std)
+
+            # swap input order randomly
+            if self.swap:
+                flag = np.random.rand()
+                if flag <= 0.5:
+                    input_mask = 1 - input_mask
+                    input_img_1, input_img_2 = input_img_2, input_img_1
+            yield input_img_1, input_img_2, input_mask
