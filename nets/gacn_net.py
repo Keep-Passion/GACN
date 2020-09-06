@@ -69,7 +69,7 @@ class GACN_Fuse():
         if ndim == 3:
             mask.repeat(1, 3, 1, 1)
 
-        fused = torch.mul(mask_BGF, img1_t)+torch.mul((1-mask_BGF), img2_t)
+        fused = torch.mul(mask_BGF, img1_t) + torch.mul((1 - mask_BGF), img2_t)
         if ndim == 3:
             fused = fused.squeeze(0).permute(1, 2, 0).cpu().detach().numpy()
         else:
@@ -83,12 +83,12 @@ class GACN_Fuse():
         x = 2400
         y = 1800
         img_list = os.listdir(path)
-        first = 'V017.jpg'
+        first  = 'V017.jpg'
         second = 'V047.jpg'
         for i in range(len(img_list)):
-            if (img_list[i] == first):
+            if img_list[i] == first:
                 img_list[i], img_list[0] = img_list[0], img_list[i]
-            elif (img_list[i] == second):
+            elif img_list[i] == second:
                 img_list[i], img_list[1] = img_list[1], img_list[i]
         if ".ipynb_checkpoints" in img_list:
             img_list.remove(".ipynb_checkpoints")
@@ -110,7 +110,7 @@ class GACN_Fuse():
         mask = torch.zeros((num - 1, 1, img1.shape[0], img1.shape[1])).to(self.device)
         decision_volume = torch.zeros((num, 1, img1.shape[0], img1.shape[1])).to(self.device)
 
-        # Mask generaion
+        # Mask generation
         with torch.no_grad():
             cat_1 = self.feature_extraction(img1_tensor.to(self.device))
             f1_sf = self.channel_sf(cat_1)
@@ -141,8 +141,8 @@ class GACN_Fuse():
         decision_volume[0, :, :, :] = mask[0, :, :, :]
         decision_volume[1, :, :, :] = 1 - mask[0, :, :, :]
         for i in range(1, num - 1):
-            decision_volume[i + 1, :, :, :] = decision_volume[0, :, :, :] / (mask[i, :, :, :] + 1e-4) * (
-                        1 - mask[i, :, :, :])
+            decision_volume[i + 1, :, :, :] = decision_volume[0, :, :, :] / (mask[i, :, :, :] + 1e-4) * \
+                                              (1 - mask[i, :, :, :])
         _, ind = torch.max(decision_volume, dim=0)
         for i in range(num):
             decision_volume[i, :, :, :] = (ind == i)
@@ -259,15 +259,15 @@ class GACNFuseNet(nn.Module):
         self.se_6 = SSELayer(32)
         self.se_7 = SSELayer(16)
         self.se_8 = SSELayer(1)
-        self.decision_path_conv1 = self.conv_block(64, 48,name="decision_path_conv1")
-        self.decision_path_conv2 = self.conv_block(48, 32,name="decision_path_conv2")
-        self.decision_path_conv3 = self.conv_block(32, 16,name="decision_path_conv3")
-        self.decision_path_conv4 = self.conv_block(16, 1,name="decision_path_conv4")
+        self.decision_path_conv1 = self.conv_block(64, 48, name="decision_path_conv1")
+        self.decision_path_conv2 = self.conv_block(48, 32, name="decision_path_conv2")
+        self.decision_path_conv3 = self.conv_block(32, 16, name="decision_path_conv3")
+        self.decision_path_conv4 = self.conv_block(16, 1,  name="decision_path_conv4")
         self.guided_filter = GuidedFilter(3, 0.1)
-        self.gaussion = GaussBlur(8, 4)
+        self.gaussian = GaussBlur(8, 4)
    
     @staticmethod
-    def conv_block(in_channels, out_channels, kernel_size = 3, relu = True, batchnorm = True, name = None):
+    def conv_block(in_channels, out_channels, kernel_size=3, relu=True, batchnorm=True, name=None):
         """
         The conv block of common setting: conv -> relu -> bn
         In conv operation, the padding = 1
@@ -280,11 +280,12 @@ class GACNFuseNet(nn.Module):
         :return:
         """
         block = torch.nn.Sequential()
-        block.add_module(name+"_Conv2d",torch.nn.Conv2d(kernel_size=kernel_size, in_channels=in_channels,out_channels=out_channels, padding=kernel_size // 2 ))
+        block.add_module(name+"_Conv2d", torch.nn.Conv2d(kernel_size=kernel_size, in_channels=in_channels,
+                                                        out_channels=out_channels, padding=kernel_size // 2))
         if relu:
-            block.add_module(name+"_ReLu",torch.nn.ReLU())
+            block.add_module(name+"_ReLu", torch.nn.ReLU())
         if batchnorm:
-            block.add_module(name+"_BatchNorm",torch.nn.BatchNorm2d(out_channels))
+            block.add_module(name+"_BatchNorm", torch.nn.BatchNorm2d(out_channels))
         return block
     
     @staticmethod
@@ -318,7 +319,7 @@ class GACNFuseNet(nn.Module):
         f2_sf = f.conv2d(f2_grad, add_kernel, padding=kernel_padding, groups=c)
 
         # get decision map
-        bimap = torch.sigmoid(1000*(f1_sf - f2_sf))
+        bimap = torch.sigmoid(1000 * (f1_sf - f2_sf))
         return bimap
     
     def forward(self, img1, img2):
@@ -354,9 +355,9 @@ class GACNFuseNet(nn.Module):
 
         # SF fusion
         cat_1 = torch.cat((se_feature_extraction_conv0_c1, se_feature_extraction_conv1_c1, 
-                           se_feature_extraction_conv2_c1, se_feature_extraction_conv3_c1),axis = 1)
+                           se_feature_extraction_conv2_c1, se_feature_extraction_conv3_c1), axis=1)
         cat_2 = torch.cat((se_feature_extraction_conv0_c2, se_feature_extraction_conv1_c2, 
-                           se_feature_extraction_conv2_c2, se_feature_extraction_conv3_c2),axis = 1)
+                           se_feature_extraction_conv2_c2, se_feature_extraction_conv3_c2), axis=1)
         fused_cat = self.fusion_channel_sf(cat_1, cat_2, kernel_radius=5)
         se_f = self.se_4(fused_cat)
 
@@ -371,18 +372,18 @@ class GACNFuseNet(nn.Module):
         se_decision_path_conv4 = self.se_8(decision_path_conv4)
         
         # Boundary guided filter
-        output_origin = torch.sigmoid(1000*(se_decision_path_conv4))    
-        output_blur = self.gaussion(output_origin)
+        output_origin = torch.sigmoid(1000 * se_decision_path_conv4)
+        output_blur = self.gaussian(output_origin)
         zeros = torch.zeros_like(output_blur)
         ones = torch.ones_like(output_blur)
-        half = ones/2
-        mask_1 = torch.where(output_blur>0.8, ones, zeros)
-        mask_2 = torch.where(output_blur<0.1, ones, zeros)
-        mask_3 = mask_1*output_blur+mask_2*(1-output_blur)
-        boundary_map = 1-torch.abs(2*(output_blur*mask_3 + (1-mask_3)*half)-1)
-        temp_fused = img1*output_origin+(1-output_origin)*img2
+        half = ones / 2
+        mask_1 = torch.where(output_blur > 0.8, ones, zeros)
+        mask_2 = torch.where(output_blur < 0.1, ones, zeros)
+        mask_3 = mask_1 * output_blur + mask_2 * (1 - output_blur)
+        boundary_map = 1 - torch.abs(2 * (output_blur * mask_3 + (1 - mask_3) * half) - 1)
+        temp_fused = img1 * output_origin + (1 - output_origin) * img2
         output_gf = self.guided_filter(temp_fused, output_origin)
-        output_bgf = output_gf*boundary_map+output_origin*(1-boundary_map)
+        output_bgf = output_gf * boundary_map + output_origin * (1 - boundary_map)
         return output_origin, output_bgf
 
 
@@ -390,13 +391,13 @@ class SSELayer(nn.Module):
     def __init__(self, channel):
         super(SSELayer, self).__init__()
         self.fc = nn.Sequential(
-            nn.Conv2d(channel, 1, kernel_size=7, bias=False,padding = [3,3]),
+            nn.Conv2d(channel, 1, kernel_size=7, bias=False, padding=[3, 3]),
             nn.Sigmoid(),
         )
     
     def forward(self, x):
         y = self.fc(x) 
-        return x *  y
+        return x * y
 
 
 class CSELayer(nn.Module):
@@ -442,7 +443,7 @@ class GACNFeatureExtraction(nn.Module):
         feature_extraction_conv3 = self.feature_extraction_conv3(se_cat2)
         se_feature_extraction_conv3 = self.se_3(feature_extraction_conv3)
         se_cat = torch.cat((se_feature_extraction_conv0, se_feature_extraction_conv1, 
-                           se_feature_extraction_conv2, se_feature_extraction_conv3),axis = 1)
+                           se_feature_extraction_conv2, se_feature_extraction_conv3), axis = 1)
         return se_cat
     
     @staticmethod
@@ -453,7 +454,7 @@ class GACNFeatureExtraction(nn.Module):
         return torch.cat((f1, f2), 1)
     
     @staticmethod
-    def conv_block(in_channels, out_channels, kernel_size = 3, relu = True, batchnorm = True, name = None):
+    def conv_block(in_channels, out_channels, kernel_size=3, relu=True, batchnorm=True, name=None):
         """
         The conv block of common setting: conv -> relu -> bn
         In conv operation, the padding = 1
@@ -466,11 +467,12 @@ class GACNFeatureExtraction(nn.Module):
         :return:
         """
         block = torch.nn.Sequential()
-        block.add_module(name+"_Conv2d",torch.nn.Conv2d(kernel_size=kernel_size, in_channels=in_channels,out_channels=out_channels, padding=kernel_size // 2 ))
+        block.add_module(name+"_Conv2d", torch.nn.Conv2d(kernel_size=kernel_size, in_channels=in_channels,
+                                                         out_channels=out_channels, padding=kernel_size // 2))
         if relu:
-            block.add_module(name+"_ReLu",torch.nn.ReLU())
+            block.add_module(name+"_ReLu", torch.nn.ReLU())
         if batchnorm:
-            block.add_module(name+"_BatchNorm",torch.nn.BatchNorm2d(out_channels))
+            block.add_module(name+"_BatchNorm", torch.nn.BatchNorm2d(out_channels))
         return block
 
 
@@ -483,12 +485,12 @@ class GACNDecisionPath(nn.Module):
         self.se_6 = SSELayer(32)
         self.se_7 = SSELayer(16)
         self.se_8 = SSELayer(1)
-        self.decision_path_conv1 = self.conv_block(64, 48,name="decision_path_conv1")
-        self.decision_path_conv2 = self.conv_block(48, 32,name="decision_path_conv2")
-        self.decision_path_conv3 = self.conv_block(32, 16,name="decision_path_conv3")
-        self.decision_path_conv4 = self.conv_block(16, 1,name="decision_path_conv4")
+        self.decision_path_conv1 = self.conv_block(64, 48, name="decision_path_conv1")
+        self.decision_path_conv2 = self.conv_block(48, 32, name="decision_path_conv2")
+        self.decision_path_conv3 = self.conv_block(32, 16, name="decision_path_conv3")
+        self.decision_path_conv4 = self.conv_block(16, 1,  name="decision_path_conv4")
         self.guided_filter = GuidedFilter(3, 0.1)
-        self.gaussion = GaussBlur(8, 4)
+        self.gaussian = GaussBlur(8, 4)
         
     def forward(self, fused_cat, img1, img2):
         
@@ -504,17 +506,17 @@ class GACNDecisionPath(nn.Module):
         
         # Boundary guided filter
         output_origin = torch.sigmoid(1000*(se_decision_path_conv4))    
-        output_blur = self.gaussion(output_origin)
+        output_blur = self.gaussian(output_origin)
         zeros = torch.zeros_like(output_blur)
         ones = torch.ones_like(output_blur)
         half = ones/2
-        mask_1 = torch.where(output_blur>0.8, ones, zeros)
-        mask_2 = torch.where(output_blur<0.1, ones, zeros)
-        mask_3 = mask_1*output_blur+mask_2*(1-output_blur)
-        boundary_map = 1-torch.abs(2*(output_blur*mask_3 + (1-mask_3)*half)-1)
-        temp_fused = img1*output_origin+(1-output_origin)*img2
+        mask_1 = torch.where(output_blur > 0.8, ones, zeros)
+        mask_2 = torch.where(output_blur < 0.1, ones, zeros)
+        mask_3 = mask_1 * output_blur+mask_2 * (1 - output_blur)
+        boundary_map = 1 - torch.abs(2 * (output_blur * mask_3 + (1 - mask_3) * half)-1)
+        temp_fused = img1 * output_origin + (1 - output_origin) * img2
         output_gf = self.guided_filter(temp_fused, output_origin)
-        output_bgf = output_gf*boundary_map+output_origin*(1-boundary_map)
+        output_bgf = output_gf * boundary_map + output_origin * (1 - boundary_map)
         return output_origin, output_bgf
     
     @staticmethod
@@ -531,7 +533,8 @@ class GACNDecisionPath(nn.Module):
         :return:
         """
         block = torch.nn.Sequential()
-        block.add_module(name+"_Conv2d", torch.nn.Conv2d(kernel_size=kernel_size, in_channels=in_channels,out_channels=out_channels, padding=kernel_size // 2 ))
+        block.add_module(name+"_Conv2d", torch.nn.Conv2d(kernel_size=kernel_size, in_channels=in_channels,
+                                                         out_channels=out_channels, padding=kernel_size // 2))
         if relu:
             block.add_module(name+"_ReLu", torch.nn.ReLU())
         if batchnorm:
