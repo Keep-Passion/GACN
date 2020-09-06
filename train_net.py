@@ -1,6 +1,3 @@
-import os
-import time
-import torch
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 import torch.optim as optim
@@ -10,7 +7,7 @@ from nets.nets_utility import *
 import torch.nn as nn
 from nets.ga_loss import GALoss
 import time
-import skimage
+
 
 # parameter for net
 # name

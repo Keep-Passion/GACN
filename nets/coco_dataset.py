@@ -1,7 +1,3 @@
-import os
-import random
-import cv2
-import numpy as np
 import PIL.Image
 from torch.utils.data.dataset import Dataset
 from torch.utils.data import DataLoader
@@ -39,24 +35,24 @@ class COCODataset(Dataset):
         mask = cv2.resize(mask, (256, 256))  
         
         # random crop
-        roi_image_np_1, roi_image_np_2 = self._random_crop(data, mask) 
+        roi_image_np, roi_mask_np = self._random_crop(data, mask)
         # random flip
-        roi_image_pil_1, roi_image_pil_2 = self._rand_flip(roi_image_np_1, roi_image_np_2)
+        roi_image_pil, roi_mask_pil = self._rand_flip(roi_image_np, roi_mask_np)
         # random rotated
-        roi_image_pil_1, roi_image_pil_2 = self._rand_rotate(roi_image_pil_1, roi_image_pil_2)
+        roi_image_pil, roi_mask_pil = self._rand_rotate(roi_image_pil, roi_mask_pil)
         
         # transform
         if self._transform is not None:
-            roi_image_tensor_1 = self._transform(roi_image_pil_1)
-            roi_image_tensor_2 = self._origin_transform(roi_image_pil_2)
+            roi_image_tensor = self._transform(roi_image_pil)
+            roi_mask_tensor = self._origin_transform(roi_mask_pil)
         else:
-            roi_image_tensor_1 = self._origin_transform(roi_image_pil_1)
-            roi_image_tensor_2 = self._origin_transform(roi_image_pil_2)
+            roi_image_tensor = self._origin_transform(roi_image_pil)
+            roi_mask_tensor = self._origin_transform(roi_mask_pil)
         
-        roi_image_tensor_2[roi_image_tensor_2 < 0.5] = 0
-        roi_image_tensor_2[roi_image_tensor_2 > 0.5] = 1
+        roi_mask_tensor[roi_mask_tensor < 0.5] = 0
+        roi_mask_tensor[roi_mask_tensor > 0.5] = 1
         
-        return roi_image_tensor_1, roi_image_tensor_2
+        return roi_image_tensor, roi_mask_tensor
 
     def _rand_flip(self, image_1, image_2):
         """
