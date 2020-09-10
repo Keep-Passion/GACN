@@ -28,14 +28,8 @@ cd GACN
 # Replicate our image method on fusing multi-focus images
 python main.py
 
-# Or run code part by part in notebook
-jupyter notebook main.ipynb
-
 # Train GACN 
 python train_net.py
-
-# Or train GACN part by part in notebook
-jupyter notebook train_net.ipynb
 
 ```
 ## Visualization
