@@ -78,22 +78,15 @@ class GACN_Fuse():
         """
         Multi image fusion using Decision calibration fusion strategy
         """
-        x = 2400
-        y = 1800
-        img_list = os.listdir(path)
-        first  = 'V017.jpg'
-        second = 'V047.jpg'
-        for i in range(len(img_list)):
-            if img_list[i] == first:
-                img_list[i], img_list[0] = img_list[0], img_list[i]
-            elif img_list[i] == second:
-                img_list[i], img_list[1] = img_list[1], img_list[i]
+        #x = 2400
+        #y = 1800
+        img_list = sorted(os.listdir(path))
         if ".ipynb_checkpoints" in img_list:
             img_list.remove(".ipynb_checkpoints")
         num = len(img_list)
         img1 = io.imread(os.path.join(path, img_list[0]))
         ndim = img1.ndim
-        img1 = cv2.resize(img1, (x, y))
+        #img1 = cv2.resize(img1, (x, y))
         img1_t = self.data_transforms(img1).unsqueeze(0)
 
         if ndim == 2:
@@ -116,7 +109,7 @@ class GACN_Fuse():
         for i in range(num - 1):
             print(num, ':', i)
             img2 = io.imread(os.path.join(path, img_list[i + 1]))
-            img2 = cv2.resize(img2, (x, y))
+            #img2 = cv2.resize(img2, (x, y))
             img2_t = self.data_transforms(img2).unsqueeze(0)
             if ndim == 2:
                 img2_gray = img2
@@ -160,14 +153,14 @@ class GACN_Fuse():
         """
         Multi image fusion using one by one serial fusion strategy
         """
-        x = 2400
-        y = 1800
+        #x = 2400
+        #y = 1800
         img_list = sorted(os.listdir(path))
         if ".ipynb_checkpoints" in img_list:
             img_list.remove(".ipynb_checkpoints")
         num = len(img_list)
         img1 = io.imread(os.path.join(path, img_list[0]))
-        img1 = cv2.resize(img1, (x, y))
+        #img1 = cv2.resize(img1, (x, y))
         img1_t = self.data_transforms(img1).unsqueeze(0).to(self.device)
         ndim = img1.ndim
         if ndim == 2:
@@ -179,7 +172,7 @@ class GACN_Fuse():
         for i in range(num - 1):
             print(num, ':', i)
             img2 = io.imread(os.path.join(path, img_list[i + 1]))
-            img2 = cv2.resize(img2, (x, y))
+            #img2 = cv2.resize(img2, (x, y))
             img2_t = self.data_transforms(img2).unsqueeze(0).to(self.device)
             if ndim == 2:
                 img2_gray = img2
