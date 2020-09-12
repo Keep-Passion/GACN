@@ -107,7 +107,7 @@ class GACN_Fuse():
             f1_sf = self.channel_sf(cat_1)
 
         for i in range(num - 1):
-            print(num, ':', i)
+            print(num-1, ':', i+1)
             img2 = io.imread(os.path.join(path, img_list[i + 1]))
             #img2 = cv2.resize(img2, (x, y))
             img2_t = self.data_transforms(img2).unsqueeze(0)
@@ -170,7 +170,7 @@ class GACN_Fuse():
         img1_gray_pil = PIL.Image.fromarray(img1_gray)
         img1_tensor = self.data_transforms(img1_gray_pil).unsqueeze(0).to(self.device)
         for i in range(num - 1):
-            print(num, ':', i)
+            print(num-1, ':', i+1)
             img2 = io.imread(os.path.join(path, img_list[i + 1]))
             #img2 = cv2.resize(img2, (x, y))
             img2_t = self.data_transforms(img2).unsqueeze(0).to(self.device)

@@ -280,3 +280,37 @@ def gaussian_noise(data_1, data_2, std=0.05, rate=0.05):
     data_1_n = data_1 * (1 - rate) + gaussian_mask * rate
     data_2_n = data_2 * (1 - rate) + gaussian_mask * rate
     return data_1_n, data_2_n
+
+def image_as_uint8(img):
+    """
+    Convert the given image to uint8
+    :param img: array, the input image
+    :return:
+    """
+    bitdepth = 8
+    out_type = np.uint8
+    dtype_str1 = str(img.dtype)
+    if (img.dtype == np.uint8):
+        return img
+    if dtype_str1.startswith("float") and np.nanmin(img) >= 0 and np.nanmax(img) <= 1:
+        img = img.astype(np.float64) * (np.power(2.0, bitdepth) - 1) + 0.499999999
+    elif img.dtype == np.uint16 :
+        img = np.right_shift(img, 8)
+    elif img.dtype == np.uint32:
+        img = np.right_shift(img, 32 - bitdepth)
+    elif img.dtype == np.uint64:
+        img = np.right_shift(img, 64 - bitdepth)
+    else:
+        mi = np.nanmin(img)
+        ma = np.nanmax(img)
+        if not np.isfinite(mi):
+            raise ValueError("Minimgum imgage value is not finite")
+        if not np.isfinite(ma):
+            raise ValueError("Maximgum imgage value is not finite")
+        if ma == mi:
+            return img.astype(out_type)
+        img = img.astype("float64")
+        img = (img - mi) / (ma - mi) * (np.power(2.0, bitdepth) - 1) + 0.499999999
+    assert np.nanmin(img) >= 0
+    assert np.nanmax(img) < np.power(2.0, bitdepth)
+    return img.astype(out_type)

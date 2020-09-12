@@ -1,8 +1,8 @@
 import os
-from skimage import io
+import numpy as np
 from nets.gacn_net import GACN_Fuse
-
-
+from nets.nets_utility import image_as_uint8
+from PIL import Image
 def image_fusion(input_dir:  str, output_dir: str):
     """
     Double images fusion
@@ -17,10 +17,12 @@ def image_fusion(input_dir:  str, output_dir: str):
     for image_name in images_name:
         if not (image_name.startswith('.') or image_name == ''):
             print("Fusing {}".format(image_name))
-            img1 = io.imread(os.path.join(input_dir, image_name + "_1.png"))
-            img2 = io.imread(os.path.join(input_dir, image_name + "_2.png"))
+            img1 = np.array(Image.open(os.path.join(input_dir, image_name + "_1.png")))
+            img2 = np.array(Image.open(os.path.join(input_dir, image_name + "_2.png")))
             fused = gacn.fuse(img1, img2)
-            io.imsave(os.path.join(output_dir, image_name + ".png"), fused)
+            fused = image_as_uint8(fused)
+            fused = Image.fromarray(fused)
+            fused.save(os.path.join(output_dir, image_name + ".png"), format='PNG', compress_level=0)
 
 
 def multi_images_fusion(input_dir: str, output_dir: str, strategy: str="calibration"):
@@ -41,14 +43,20 @@ def multi_images_fusion(input_dir: str, output_dir: str, strategy: str="calibrat
         images_path.remove(".ipynb_checkpoints")
     for images in images_path:
         final_path = os.path.join(input_dir, images)
+        img_list = sorted(os.listdir(final_path))
+        if ".ipynb_checkpoints" in img_list:
+            img_list.remove(".ipynb_checkpoints")
+        num = len(img_list)
+        print("Path: {}\nNumber of images: {}".format(final_path, num))
         if strategy == "calibration":
             fused = gacn.multi_fuse_calibration(final_path)
         elif strategy == "origin":
             fused = gacn.multi_fuse_origin(final_path)
         else:
             raise NameError("illegal fusion strategy")
-        io.imsave(os.path.join(output_dir, images+".png"), fused)
-
+        fused = image_as_uint8(fused)
+        fused = Image.fromarray(fused)
+        fused.save(os.path.join(output_dir, images+".png"), format='PNG', compress_level=0)
 
 if __name__ == "__main__":
     
