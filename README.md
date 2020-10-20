@@ -36,7 +36,7 @@ python train_net.py
 ![avatar](/paper/visualization.png)
 
 ## Citation
-Still in submission.
+Still in submission. And the pre-print version can be found at [the paper](https://arxiv.org/abs/2010.08751)
 
 ## Acknowledgement
 The authors acknowledge the financial support from the National Key Research and Development 
