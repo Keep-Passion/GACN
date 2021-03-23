@@ -42,3 +42,6 @@ Still in submission. And the pre-print version can be found at [the paper](https
 The authors acknowledge the financial support from the National Key Research and Development 
 Program of China (No. 2016YFB0700500). Besides, the dataset of multiple image fusion is driven from the 
 [website](https://mp.weixin.qq.com/s?__biz=MzU1ODE1NTQ0Mg==&mid=2247488091&idx=1&sn=648aa20f0d2dd599f194392aaba37dcc&chksm=fc2b8186cb5c08905480d20bfc2cbcf1946b6bdb746d7e38dfe68061a10b6b545eb50e2c3cf7&mpshare=1&scene=1&srcid=072957pnJNaD0fSfk5xWCVAt&sharer_sharetime=1596024724190&sharer_shareid=5ebb4ebec0efa12c73f7f111bfa30973&key=590f90317dcde6d793130d527e1a34d7d813595dc6ec22d294606b7bc26e32c68321a95f0b68fcbbf46ddbdba56f614487090a062e0a1c02e25268307f0bea1825346b7863d7ffffdd3e1877ad5be11817d7562c23737d8af7f9919cab373f3e7ba0091cf7b765a48ba86c2442915db53b38bd27c1cda54db54a5932369d01e7&ascene=1&uin=MTcxMjE3OTc0MA%3D%3D&devicetype=Windows+10+x64&version=62090529&lang=zh_CN&exportkey=AQnWDf40U6oLM5pjz69RWcI%3D&pass_ticket=XdlQqtchEHnePeyXepJjmagwSDi3IJPG9i1G1%2FiJSXWjsCgRP8rk56O3qRxINEIZ&wx_header=0) provided by [Zhuhai Boming Vision Technology Co., Ltd](http://bomming.com/index.html).
+
+## Recommendation
+Our previous work SESF-Fuse can be found at [the paper](https://link.springer.com/article/10.1007/s00521-020-05358-9#citeas) and [the code](https://github.com/Keep-Passion/SESF-Fuse).
