@@ -33,7 +33,8 @@ python train_net.py
 
 ```
 ## Visualization
-![avatar](/paper/visualization.png)
+![avatar](/paper/vis_compare_dm.png)
+![avatar](/paper/vis_compare_decoder.png)
 
 ## Citation
 Still in submission. And the pre-print version can be found at [the paper](https://arxiv.org/abs/2010.08751)
