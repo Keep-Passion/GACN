@@ -7,4 +7,4 @@ numpy==1.17.0
 Pillow==6.1.0
 scikit-image==0.15.0
 torch==1.2.0
-torchvision==0.5.0a0+19315e3
+torchvision==0.5.0
