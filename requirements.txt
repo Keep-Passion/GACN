@@ -83,7 +83,7 @@ python-distutils-extra==2.39
 python-gflags==3.1.2
 pytz==2019.2
 PyWavelets==1.0.3
-PyYAML==5.1.2
+PyYAML==5.4
 pyzmq==18.1.0
 qtconsole==4.5.2
 requests==2.22.0
