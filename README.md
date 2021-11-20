@@ -37,7 +37,9 @@ python train_net.py
 ![avatar](/paper/vis_compare_decoder.png)
 
 ## Citation
-Still in submission. And the pre-print version can be found at [the paper](https://arxiv.org/abs/2010.08751)
+If you use it successfully for your research please be so kind to cite [the paper](https://doi.org/10.1016/j.neucom.2021.10.115).
+
+Ma, B., Yin, X., Di Wu., et al. End-to-end learning for simultaneously generating decision map and multi-focus image fusion result. Neurocomputing,  2022, 470, 204-216. 
 
 ## Acknowledgement
 The authors acknowledge the financial support from the National Key Research and Development 
